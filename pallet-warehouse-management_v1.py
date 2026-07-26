@@ -1,48 +1,50 @@
 #Programmbeginn
-#Lagerverzeichnis
+#Lagerverzeichnis: Klasse A= Verpackung, Klasse B= Tausch, Klasse C= Defekt
 Lager = {
     "PL-EUR-01": {
         "name": "Euro-Palette (Holz) [1.2m x 0.8m]",
-        "meldebestand":136,
+        "meldebestand": {"A": 136, "B": 100},
         "klassen": {"A": 500, "B": 300, "C": 50}
     },
     "PL-IND-02": {
         "name": "Industriepalette (Holz) [1.2m x1.0m]",
-        "meldebestand":136,
+        "meldebestand": {"A": 136, "B": 80},
         "klassen": {"A": 200, "B":180, "C": 50}
     },
     "PL-GIB-03": {
         "name": "Gitterbox (Stahl) [1.2m x 0.8m]",
-        "meldebestand":34,
+        "meldebestand": {"A": 34, "B": 20},
         "klassen": {"A": 150, "B":90, "C": 10}
     },
     "PL-DIS-04": {
         "name": "Displaypalette (Kunststoff) [0.8m x 0.6m]",
-        "meldebestand":20,
+        "meldebestand":{"A": 20, "B": 10},
         "klassen": {"A": 100, "B": 45, "C": 5}
     }
 }
 #Lagerprogramm
 while True:
-    print("/n---CargoScript Lagerprogramm---")
+    print("\n---CargoScript Lagerprogramm---")
     print("1 = Lagerbestand anzeigen")
     print("2 = Wareneingang buchen")
     print("3 = Warenausgang buchen")
     print("4 = Programm beenden")
-    auswahl = input("Bitte wähle eine Option:")
+    auswahl = input("Bitte Option wählen:")
 
     if auswahl == "1":
         print("\n--- Aktueller Lagerbestand---")
         for artikelnummer, details in Lager.items():
             gesamtbestand = sum(details["klassen"].values())
 
-            print(f"/nArtikelnummer: {artikelnummer} | Typ: {details['name']}")
+            print(f"\nArtikelnummer: {artikelnummer} | Typ: {details['name']}")
             print(f"  ->Gesamtbestand: {gesamtbestand} Stück (Meldebestand: {details['meldebestand']})")
-            print(f"  |_ Davon Klasse A (Neu): {details['klassen']['A']} Stück")
-            print(f"  |_ Davon Klasse B (Gebraucht): {details['klassen']['B']} Stück")
+            print(f"  |_ Davon Klasse A (Verpackung/Neu): {details['klassen']['A']} Stück")
+            print(f"  |_ Davon Klasse B (Tausch/Benutzt): {details['klassen']['B']} Stück")
             print(f"  |_ Davon Klasse C (Defekt): {details['klassen']['C']} Stück")
 
-        if gesamtbestand <= details['meldebestand']:
+        if details['klassen']['A'] <= details['meldebestand']['A']:
+            print("Achtung! Meldebestand unterschritten! Bitte Nachbestellen!")
+        if details['klassen']['B'] <= details['meldebestand']['B']:
             print("Achtung! Meldebestand unterschritten! Bitte Nachbestellen!")
 #Wareneingang
 
@@ -56,8 +58,8 @@ while True:
                 Lager[artikelnummer]["klassen"][klasse] += menge
                 if klasse == "C" and Lager[artikelnummer]["klassen"]["C"] > 50:
                     print(f"\n Achtung zu viele deffekte Paletten im Lager({Lager[artikelnummer]['klassen']['C']} Stück)!")
-                    print("Bitte entsorgen")
-                print(f"/n Erfolg, der Artikelnummer {artikelnummer} wurden {menge} Paletten der Qualitätsklasse {klasse} zugebucht")
+                    print(" Bitte entsorgen")
+                print(f"\n Erfolg, der Artikelnummer {artikelnummer} wurden {menge} Paletten der Qualitätsklasse {klasse} zugebucht")
             else:
                 print("Fehler! ungültige Qualitätsklasse")
         else:
@@ -67,22 +69,39 @@ while True:
 
     elif auswahl == "3":
         print("Warenausgang buchen")
-        artikelnummer = input("Bitte Artikelnummer angeben (z.B. PL-EUR-01):")
+        artikelnummer = input("Bitte Artikelnummer angeben (z.B. PL-EUR-01): ").strip().upper()
+
         if artikelnummer in Lager:
             klasse = input("Welche Qualitätsklasse soll ausgebucht werden (A/ B/ C): ").strip().upper()
+
             if klasse in ["A", "B", "C"]:
-                menge = int(input("Wie viele Paletten sollen ausgebucht werden?"))
+                menge = int(input("Wie viele Paletten sollen ausgebucht werden? "))
 
-                Lager[artikelnummer]["klassen"][klasse] -= menge
-                print(f"Es wurden {menge} Paletten mit der Artikelnummer{artikelnummer} aus der Qualitätsklasse {klasse} ausgebucht")
-                gute_paletten = Lager[artikelnummer]["klassen"]["A"] + Lager[artikelnummer]["klassen"]["B"]
-                if gute_paletten <= Lager[artikelnummer]["meldebestand"]:
-                    print(f"\" Achtung! Meldestand erreicht bitte Paletten bestellen!")
-                    print(f" Wir haben zu wenig Paletten auf Lager ({gute_paletten} Stück)!")
+# 1. Prüfen, ob überhaupt genug Paletten dieser Klasse da sind
+                if menge > Lager[artikelnummer]["klassen"][klasse]:
+                    print(f"Fehler! Nicht genügend Paletten der Klasse {klasse} vorhanden (Aktuell: {Lager[artikelnummer]['klassen'][klasse]} Stück).")
+                else:
+# 2. Menge abziehen
+                    Lager[artikelnummer]["klassen"][klasse] -= menge
+                    aktueller_bestand = Lager[artikelnummer]["klassen"][klasse]
+                    print(f"Es wurden {menge} Paletten ({artikelnummer}, Klasse {klasse}) erfolgreich ausgebucht.")
+
+# 3. Meldebestand-Prüfung für A und B
+                    if klasse in ["A", "B"]:
+                        ziel_meldebestand = Lager[artikelnummer]["meldebestand"][klasse]
+
+                        if aktueller_bestand <= ziel_meldebestand:
+                            verwendungszweck = "Verpackung" if klasse == "A" else "Tausch"
+                            print(f"\nACHTUNG: Meldebestand für Klasse {klasse} ({verwendungszweck}) erreicht oder unterschritten!")
+                            print(f"Aktueller Bestand Klasse {klasse}: {aktueller_bestand} Stück (Meldebestand: {ziel_meldebestand} Stück).")
+                            print(f"Bitte Nachbestellung/Beschaffung für Klasse {klasse} veranlassen!")
+
             else:
-                print("Fehler! Ungültige Qualitätsklasse" )
+                print("Fehler! Ungültige Qualitätsklasse.")
+        else:
+            print("Fehler! Ungültige Artikelnummer.")
 
-        else:print(" Fehler! Ungültige Artikelnummer")
+
 
 #Programmende
     elif auswahl == "4":
