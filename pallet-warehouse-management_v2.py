@@ -197,7 +197,7 @@ while True:
                             )
                     else:
                         print(
-                            f"Fehler: Nicht genügend Bestand in Klasse B, Ausbuchen nicht möglich! (Aktuell: {selected_palette.stock_b})"
+                            f"Fehler: Nicht genügend Bestand in Klasse B, Ausbuchen nicht möglich ! (Aktuell: {selected_palette.stock_b})"
                         )
 
                 elif quality_class == "c":
